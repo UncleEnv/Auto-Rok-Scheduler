@@ -1,0 +1,47 @@
+# ---- Build output ----
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+publish/
+[Pp]ublish/
+
+# ---- Visual Studio / Rider ----
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# ---- Rider / ReSharper ----
+_ReSharper*/
+*.DotSettings.user
+
+# ---- .NET ----
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.nupkg
+*.snupkg
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# ---- Test / coverage ----
+[Tt]est[Rr]esult*/
+[Cc]overage*/
+*.coverage
+*.coveragexml
+
+# ---- OS cruft ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# ---- App runtime data (never committed; lives in %LocalAppData% anyway) ----
+config.json
+BrowserProfiles/
+Assets/app.ico
