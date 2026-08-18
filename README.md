@@ -90,6 +90,10 @@ To produce the same single-file self-contained exe that ships on Releases:
 dotnet publish AutoRokScheduler\AutoRokScheduler.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
 ```
 
+Pushing a `v*` tag builds this exe, **code-signs** it (Azure Trusted Signing), and
+attaches it to the GitHub Release automatically via `.github/workflows/release.yml` —
+see [docs/CODE_SIGNING.md](docs/CODE_SIGNING.md) for the one-time Azure/GitHub setup.
+
 ---
 
 ## First run
