@@ -11,7 +11,7 @@ public sealed class ProfileViewModel : ObservableObject
 
     private RunState _state;
     private DateTime? _stateSince;
-    private BotAction? _pendingAction;
+    private string? _busyLabel;
 
     public ProfileViewModel(Profile model)
     {
@@ -49,7 +49,15 @@ public sealed class ProfileViewModel : ObservableObject
     /// UI can show STARTING… vs STOPPING…</summary>
     public void SetWorking(BotAction action)
     {
-        _pendingAction = action;
+        _busyLabel = action == BotAction.Stop ? "STOPPING…" : "STARTING…";
+        State = RunState.Working;
+        OnPropertyChanged(nameof(StatusText));
+    }
+
+    /// <summary>Enter the "checking current status" transient state (used on startup).</summary>
+    public void SetChecking()
+    {
+        _busyLabel = "CHECKING…";
         State = RunState.Working;
         OnPropertyChanged(nameof(StatusText));
     }
@@ -58,7 +66,7 @@ public sealed class ProfileViewModel : ObservableObject
     {
         RunState.Running => "STARTED",
         RunState.Stopped => "STOPPED",
-        RunState.Working => _pendingAction == BotAction.Stop ? "STOPPING…" : "STARTING…",
+        RunState.Working => _busyLabel ?? "WORKING…",
         RunState.Error => "ERROR",
         _ => "UNKNOWN"
     };

@@ -115,8 +115,14 @@ public sealed class MainViewModel : ObservableObject
 
     public void CommitScheduleEdit(ScheduleViewModel svm)
     {
+        // A just-edited entry is a fresh intention, so clear its "fired today" marker.
+        // Otherwise the once-per-day guard blocks an entry that already fired earlier
+        // today (e.g. re-pointing a slot that ran this morning to a new Start/Stop that
+        // should run now). With catch-up on, an overdue edit then fires on the next tick.
+        svm.Model.LastFired = default;
         svm.Refresh();
         Save();
+        LogInfo($"{svm.Model.Action} at {svm.Model.TimeOfDay:HH:mm} updated ({svm.Model.DaysSummary()}).", LogLevel.Info);
     }
 
     public void RemoveSchedule(ProfileViewModel pvm, ScheduleViewModel svm)
@@ -130,6 +136,44 @@ public sealed class MainViewModel : ObservableObject
 
     public async void StartSelected() => await RunAsync(Selected, BotAction.Start);
     public async void StopSelected() => await RunAsync(Selected, BotAction.Stop);
+
+    /// <summary>
+    /// On app startup: for each account, log in, open the machine and read the live
+    /// status so the dashboard reflects reality instead of the last-saved guess.
+    /// </summary>
+    public async Task RefreshStatusesAsync()
+    {
+        foreach (var pvm in Profiles)
+        {
+            if (IsBusy) continue; // a manual/scheduled action is running; it will set the state
+            if (_cts.IsCancellationRequested) { _cts.Dispose(); _cts = new CancellationTokenSource(); }
+
+            IsBusy = true;
+            pvm.SetChecking();
+            LogInfo($"{pvm.Name}: checking current status…", LogLevel.Info);
+            try
+            {
+                var result = await _runner.RefreshStatusAsync(pvm.Model, _cts.Token);
+                pvm.State = result;
+                LogInfo($"{pvm.Name}: status is {result}.", LogLevel.Success);
+                Save();
+            }
+            catch (OperationCanceledException)
+            {
+                pvm.State = RunState.Unknown;
+                LogInfo($"{pvm.Name}: status check cancelled.", LogLevel.Warn);
+            }
+            catch (Exception ex)
+            {
+                pvm.State = RunState.Error;
+                LogInfo($"{pvm.Name}: status check failed — {ex.Message}", LogLevel.Error);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+    }
 
     public void CancelCurrent()
     {

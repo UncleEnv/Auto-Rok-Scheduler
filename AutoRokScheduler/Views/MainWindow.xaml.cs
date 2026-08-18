@@ -29,6 +29,10 @@ public partial class MainWindow : Window
         StateChanged += (_, _) => BtnMax.Content = WindowState == WindowState.Maximized ? "❐" : "□";
         Closing += (_, _) => _vm.Shutdown();
 
+        // On startup, log in and read each account's live status so the dashboard
+        // shows the real state right away.
+        Loaded += async (_, _) => await _vm.RefreshStatusesAsync();
+
         // Restore saved window size/position.
         var s = _vm.Settings;
         if (s.WindowWidth > 200 && s.WindowHeight > 200)

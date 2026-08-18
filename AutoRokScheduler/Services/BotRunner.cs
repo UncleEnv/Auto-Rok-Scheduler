@@ -40,4 +40,25 @@ public sealed class BotRunner
             _gate.Release();
         }
     }
+
+    /// <summary>Logs in, opens the machine and reads its status (no Start/Stop click).</summary>
+    public async Task<RunState> RefreshStatusAsync(Profile profile, CancellationToken ct)
+    {
+        await _gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            return await Task.Run(() =>
+            {
+                var state = _getState();
+                using var bot = new SeleniumBot(
+                    state.Site, state.Settings,
+                    msg => Log?.Invoke($"[{profile.Name}] {msg}"));
+                return bot.ReadStatusOnly(profile, ct);
+            }, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
 }

@@ -57,6 +57,31 @@ public sealed class SeleniumBot : IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Logs in and opens the machine's App Control page, then reads the current status
+    /// WITHOUT pressing Start or Stop. Used on app startup to show the live state.
+    /// </summary>
+    public RunState ReadStatusOnly(Profile profile, CancellationToken ct)
+    {
+        var password = CredentialProtector.Decrypt(profile.EncryptedPassword);
+        if (string.IsNullOrEmpty(profile.Login) || string.IsNullOrEmpty(password))
+            throw new InvalidOperationException("This profile has no login/password set.");
+
+        _driver = BuildDriver(profile);
+        _log($"Browser launched ({profile.Browser}, profile '{profile.EffectiveProfileKey}').");
+
+        _log("Opening App Control...");
+        Navigate(_site.AppControlUrl);
+        WaitForAppReady();
+
+        // Log in / enter device name / clear popups until the Start & Stop controls show.
+        ReachControls(profile, ct);
+
+        var status = ReadStatus();
+        _log($"Current status: {status}.");
+        return status;
+    }
+
     // ---------------------------------------------------------------- driver
 
     private IWebDriver BuildDriver(Profile profile)
