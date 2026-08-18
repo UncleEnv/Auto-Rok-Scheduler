@@ -46,20 +46,24 @@
                 </Grid>
 
                 <TextBlock Text="DAYS" Style="{StaticResource FieldLabel}" Margin="0,16,0,6"/>
+                <ToggleButton x:Name="ChipDaily" Style="{StaticResource DayChip}" Content="Daily"
+                              Width="72" HorizontalAlignment="Left" Margin="0,0,0,8" Click="Daily_Click"/>
                 <WrapPanel>
-                    <ToggleButton x:Name="ChipMon" Style="{StaticResource DayChip}" Content="Mon"/>
-                    <ToggleButton x:Name="ChipTue" Style="{StaticResource DayChip}" Content="Tue"/>
-                    <ToggleButton x:Name="ChipWed" Style="{StaticResource DayChip}" Content="Wed"/>
-                    <ToggleButton x:Name="ChipThu" Style="{StaticResource DayChip}" Content="Thu"/>
-                    <ToggleButton x:Name="ChipFri" Style="{StaticResource DayChip}" Content="Fri"/>
-                    <ToggleButton x:Name="ChipSat" Style="{StaticResource DayChip}" Content="Sat"/>
-                    <ToggleButton x:Name="ChipSun" Style="{StaticResource DayChip}" Content="Sun"/>
+                    <ToggleButton x:Name="ChipMon" Style="{StaticResource DayChip}" Content="Mon" Click="Day_Click"/>
+                    <ToggleButton x:Name="ChipTue" Style="{StaticResource DayChip}" Content="Tue" Click="Day_Click"/>
+                    <ToggleButton x:Name="ChipWed" Style="{StaticResource DayChip}" Content="Wed" Click="Day_Click"/>
+                    <ToggleButton x:Name="ChipThu" Style="{StaticResource DayChip}" Content="Thu" Click="Day_Click"/>
+                    <ToggleButton x:Name="ChipFri" Style="{StaticResource DayChip}" Content="Fri" Click="Day_Click"/>
+                    <ToggleButton x:Name="ChipSat" Style="{StaticResource DayChip}" Content="Sat" Click="Day_Click"/>
+                    <ToggleButton x:Name="ChipSun" Style="{StaticResource DayChip}" Content="Sun" Click="Day_Click"/>
                 </WrapPanel>
-                <TextBlock Text="No days selected = every day." Foreground="{StaticResource IdleBrush}" FontSize="11" Margin="2,0,0,0"/>
+                <TextBlock Text="Pick Daily for every day, or choose specific days." Foreground="{StaticResource IdleBrush}" FontSize="11" Margin="2,0,0,0"/>
             </StackPanel>
 
             <!-- footer -->
             <Grid Grid.Row="2" Margin="20,12,20,18">
+                <TextBlock x:Name="ErrorText" Foreground="{StaticResource StoppedBrush}" FontSize="12"
+                           VerticalAlignment="Center" TextWrapping="Wrap"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="Cancel" Style="{StaticResource GhostButton}" Click="Cancel_Click" Margin="0,0,10,0"/>
                     <Button Content="Save" Style="{StaticResource AccentButton}" Click="Save_Click" MinWidth="90"/>
