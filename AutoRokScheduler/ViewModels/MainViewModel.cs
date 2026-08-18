@@ -148,7 +148,7 @@ public sealed class MainViewModel : ObservableObject
         if (_cts.IsCancellationRequested) { _cts.Dispose(); _cts = new CancellationTokenSource(); }
 
         IsBusy = true;
-        pvm.State = RunState.Working;
+        pvm.SetWorking(action);
         LogInfo($"{pvm.Name}: {action} requested…", LogLevel.Info);
         try
         {
@@ -179,20 +179,32 @@ public sealed class MainViewModel : ObservableObject
     {
         if (IsBusy) return; // don't overlap; day/window guard keeps it correct next tick
         var now = DateTime.Now;
+        var catchUp = _state.Settings.CatchUpMissed;
 
         foreach (var pvm in Profiles)
         {
-            foreach (var svm in pvm.Schedules)
-            {
-                var entry = svm.Model;
-                if (!ScheduleEvaluator.IsDue(entry, now, _state.Settings.CatchUpMissed)) continue;
+            // Every entry that's due for this profile right now, earliest-scheduled first.
+            var due = pvm.Schedules
+                .Where(svm => ScheduleEvaluator.IsDue(svm.Model, now, catchUp))
+                .OrderBy(svm => svm.Model.TimeOfDay)
+                .ToList();
+            if (due.Count == 0) continue;
 
-                entry.LastFired = now;   // mark before running → no double-fire
-                Save();
-                LogInfo($"⏰ Schedule fired: {pvm.Name} {entry.Action} ({entry.TimeOfDay:HH:mm}).", LogLevel.Info);
-                _ = RunAsync(pvm, entry.Action);
-                return; // one at a time; remaining due entries catch the next tick
+            // The correct end-state is the LATEST-scheduled due entry (e.g. if the app
+            // was closed all morning and both a Stop and a later Start are overdue, we
+            // want to end Started, not toggle Stop→Start). Mark the superseded ones fired
+            // so they don't retroactively toggle, and run only the winner.
+            var winner = due[^1];
+            foreach (var svm in due)
+            {
+                svm.Model.LastFired = now; // mark before running → no double-fire
+                if (svm != winner)
+                    LogInfo($"⏰ Skipping overdue {pvm.Name} {svm.Model.Action} ({svm.Model.TimeOfDay:HH:mm}) — catching up to {winner.Model.TimeOfDay:HH:mm}.", LogLevel.Info);
             }
+            Save();
+            LogInfo($"⏰ Schedule fired: {pvm.Name} {winner.Model.Action} ({winner.Model.TimeOfDay:HH:mm}).", LogLevel.Info);
+            _ = RunAsync(pvm, winner.Model.Action);
+            return; // one profile at a time; others catch the next tick
         }
     }
 

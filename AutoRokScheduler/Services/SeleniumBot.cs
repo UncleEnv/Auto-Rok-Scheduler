@@ -81,7 +81,12 @@ public sealed class SeleniumBot : IDisposable
             foreach (var a in args) o.AddArgument(a);
             if (_settings.Headless) { o.AddArgument("--headless=new"); o.AddArgument("--disable-gpu"); }
             o.AddExcludedArgument("enable-automation");
-            driver = new ChromeDriver(o);
+
+            // Hide the driver's console window so nothing flashes on screen.
+            var service = ChromeDriverService.CreateDefaultService();
+            service.HideCommandPromptWindow = true;
+            service.SuppressInitialDiagnosticInformation = true;
+            driver = new ChromeDriver(service, o);
         }
         else
         {
@@ -89,7 +94,12 @@ public sealed class SeleniumBot : IDisposable
             foreach (var a in args) o.AddArgument(a);
             if (_settings.Headless) { o.AddArgument("--headless=new"); o.AddArgument("--disable-gpu"); }
             o.AddExcludedArgument("enable-automation");
-            driver = new EdgeDriver(o);
+
+            // Hide the driver's console window so nothing flashes on screen.
+            var service = EdgeDriverService.CreateDefaultService();
+            service.HideCommandPromptWindow = true;
+            service.SuppressInitialDiagnosticInformation = true;
+            driver = new EdgeDriver(service, o);
         }
 
         driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(60);

@@ -11,6 +11,7 @@ public sealed class ProfileViewModel : ObservableObject
 
     private RunState _state;
     private DateTime? _stateSince;
+    private BotAction? _pendingAction;
 
     public ProfileViewModel(Profile model)
     {
@@ -44,11 +45,20 @@ public sealed class ProfileViewModel : ObservableObject
         }
     }
 
+    /// <summary>Enter the transient "working" state, remembering which action so the
+    /// UI can show STARTING… vs STOPPING…</summary>
+    public void SetWorking(BotAction action)
+    {
+        _pendingAction = action;
+        State = RunState.Working;
+        OnPropertyChanged(nameof(StatusText));
+    }
+
     public string StatusText => _state switch
     {
-        RunState.Running => "RUNNING",
+        RunState.Running => "STARTED",
         RunState.Stopped => "STOPPED",
-        RunState.Working => "WORKING…",
+        RunState.Working => _pendingAction == BotAction.Stop ? "STOPPING…" : "STARTING…",
         RunState.Error => "ERROR",
         _ => "UNKNOWN"
     };

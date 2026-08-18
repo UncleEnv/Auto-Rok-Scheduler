@@ -26,6 +26,7 @@
 
     <!-- ========================== CONVERTERS ========================== -->
     <conv:RunStateToBrushConverter   x:Key="StateBrush"/>
+    <conv:RunStateToGlyphConverter   x:Key="StateGlyph"/>
     <conv:LogLevelToBrushConverter   x:Key="LogBrush"/>
     <conv:NullToVisibilityConverter  x:Key="NotNullVis"/>
     <conv:NullToVisibleConverter     x:Key="NullVis"/>

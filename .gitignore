@@ -44,4 +44,3 @@ $RECYCLE.BIN/
 # ---- App runtime data (never committed; lives in %LocalAppData% anyway) ----
 config.json
 BrowserProfiles/
-Assets/app.ico

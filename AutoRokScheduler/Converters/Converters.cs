@@ -14,7 +14,10 @@ internal static class BrushHelper
         => Application.Current?.TryFindResource(key) as Brush ?? Brushes.Gray;
 }
 
-/// <summary>RunState → status colour (running=green, stopped=red, etc.).</summary>
+/// <summary>
+/// RunState → status colour: Started=green, Stopped=red, Working (starting/stopping)
+/// =grey, Unknown=grey. Error reuses red.
+/// </summary>
 public sealed class RunStateToBrushConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -24,10 +27,26 @@ public sealed class RunStateToBrushConverter : IValueConverter
         {
             RunState.Running => BrushHelper.Res("RunningBrush"),
             RunState.Stopped => BrushHelper.Res("StoppedBrush"),
-            RunState.Working => BrushHelper.Res("AccentBrush"),
+            RunState.Working => BrushHelper.Res("IdleBrush"),
             RunState.Error => BrushHelper.Res("StoppedBrush"),
             _ => BrushHelper.Res("IdleBrush")
         };
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+/// <summary>
+/// RunState → tiny glyph drawn on the status dot. Unknown shows "?", everything else
+/// is blank (the dot's colour carries the meaning).
+/// </summary>
+public sealed class RunStateToGlyphConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var s = value is RunState rs ? rs : RunState.Unknown;
+        return s == RunState.Unknown ? "?" : "";
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
