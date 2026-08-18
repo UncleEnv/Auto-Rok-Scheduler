@@ -42,14 +42,13 @@ Built with **C# / .NET 10 / WPF** and **Selenium** driving **Microsoft Edge**.
 
 ## Download & run (no build required)
 
-1. Go to the [**Releases**](../../releases) page and download the latest
-   `AutoRokScheduler-win-x64.zip`.
-2. Extract it anywhere.
-3. Double-click **`AutoRokScheduler.exe`** (it sits at the top of the extracted folder).
+1. Go to the [**Releases**](../../releases) page and download **`AutoRokScheduler.exe`**.
+2. Double-click it. That's it — a single self-contained file, nothing to extract or install.
 
-The download is **self-contained** — you do **not** need .NET installed. You do need
-**Microsoft Edge** (preinstalled on Windows 10/11). The first run downloads the
-matching Edge driver automatically, so it needs internet access once.
+You do **not** need .NET installed. You do need **Microsoft Edge** (preinstalled on
+Windows 10/11). The first run downloads the matching Edge driver automatically, so it
+needs internet access once. Everything is bundled inside the one ~66 MB exe, so the
+very first launch takes a couple of seconds to unpack itself.
 
 > Windows SmartScreen may warn about an unsigned app the first time — choose
 > *More info → Run anyway*.
@@ -85,10 +84,10 @@ to `dotnet run` if nothing is built yet.
 > If `dotnet` isn't on your PATH, use the full path, e.g.
 > `"C:\Program Files\dotnet\dotnet.exe" build AutoRokScheduler\AutoRokScheduler.csproj`.
 
-To produce the same self-contained package that ships on Releases:
+To produce the same single-file self-contained exe that ships on Releases:
 
 ```powershell
-dotnet publish AutoRokScheduler\AutoRokScheduler.csproj -c Release -r win-x64 --self-contained true
+dotnet publish AutoRokScheduler\AutoRokScheduler.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
 ```
 
 ---
