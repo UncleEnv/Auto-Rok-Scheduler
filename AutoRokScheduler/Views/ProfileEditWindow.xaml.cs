@@ -38,7 +38,10 @@ public partial class ProfileEditWindow : Window
         if (existingKeys.Length > 0)
             KeyHint.Text = $"Leave blank for its own isolated session. Type the same value as another account to share a login/session.\nExisting: {string.Join(", ", existingKeys)}";
 
-        Loaded += (_, _) => NameBox.Focus();
+        // Activate() before Focus(): launching msedgedriver/Edge can briefly steal the
+        // foreground, and Focus() on a non-foreground window silently does nothing --
+        // which looks exactly like a dialog that opened but refuses to accept typing.
+        Loaded += (_, _) => { Activate(); NameBox.Focus(); };
     }
 
     private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)

@@ -376,10 +376,14 @@ public sealed class MainViewModel : ObservableObject
         => _dispatcher.InvokeAsync(() =>
                LogInfo($"Could not save config — {CrashLog.Describe(ex)}", LogLevel.Error));
 
+    /// <summary>Log a UI-level event (dialogs opening/closing, etc.).</summary>
+    public void LogUi(string message) => LogInfo(message, LogLevel.Info);
+
     private void LogInfo(string message, LogLevel level)
     {
         Log.Add(new LogEntry { Message = message, Level = level });
         while (Log.Count > 500) Log.RemoveAt(0);
+        ActivityLogFile.Append(message, level);
     }
 
     public void Shutdown()

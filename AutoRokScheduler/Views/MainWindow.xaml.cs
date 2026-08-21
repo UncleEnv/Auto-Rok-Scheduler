@@ -75,16 +75,24 @@ public partial class MainWindow : Window
             Name = SuggestProfileName(),
             Browser = _vm.Settings.DefaultBrowser
         };
+        _vm.LogUi($"Opening account editor (new, busy={_vm.IsBusy}).");
         var dlg = new ProfileEditWindow(p, _vm.ExistingProfileKeys(), isNew: true) { Owner = this };
-        if (dlg.ShowDialog() == true)
+        var ok = dlg.ShowDialog() == true;
+        _vm.LogUi($"Account editor closed ({(ok ? "saved" : "cancelled")}).");
+        if (ok)
             _vm.AddProfile(p);
     }
 
     private void EditProfile_Click(object sender, RoutedEventArgs e)
     {
         if (_vm.Selected is not { } pvm) return;
+        // Traced with the busy flag so an intermittent "dialog opened but was unusable"
+        // can be correlated against a browser/driver launch stealing foreground focus.
+        _vm.LogUi($"Opening account editor for '{pvm.Name}' (busy={_vm.IsBusy}).");
         var dlg = new ProfileEditWindow(pvm.Model, _vm.ExistingProfileKeys(), isNew: false) { Owner = this };
-        if (dlg.ShowDialog() == true)
+        var ok = dlg.ShowDialog() == true;
+        _vm.LogUi($"Account editor closed ({(ok ? "saved" : "cancelled")}).");
+        if (ok)
             _vm.CommitProfileEdit(pvm);
     }
 
