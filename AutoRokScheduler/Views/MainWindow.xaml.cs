@@ -44,8 +44,11 @@ public partial class MainWindow : Window
 
     private void OnLogChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        // InvokeAsync (not BeginInvoke) runs the delegate directly. BeginInvoke goes
+        // through DynamicInvoke, which would rewrap any failure as an opaque
+        // TargetInvocationException before it reached the error handler.
         if (e.Action == NotifyCollectionChangedAction.Add)
-            Dispatcher.BeginInvoke(() => LogScroll.ScrollToEnd());
+            Dispatcher.InvokeAsync(() => LogScroll?.ScrollToEnd());
     }
 
     // ------------------------------------------------------------- title bar

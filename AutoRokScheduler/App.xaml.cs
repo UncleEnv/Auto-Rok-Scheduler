@@ -1,7 +1,10 @@
+using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using AutoRokScheduler.Services;
 
 namespace AutoRokScheduler;
 
@@ -18,13 +21,31 @@ public partial class App : Application
         RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
 
         DispatcherUnhandledException += OnUnhandledException;
+
+        // Failures off the UI thread (background bot work, timers) would otherwise
+        // vanish silently or kill the process without explanation.
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            if (e.ExceptionObject is Exception ex) CrashLog.Write("Background thread", ex);
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            CrashLog.Write("Unobserved task", e.Exception);
+            e.SetObserved();
+        };
     }
 
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
+        CrashLog.Write("UI thread", e.Exception);
+
+        // Report the underlying cause, not the reflection wrapper around it.
         MessageBox.Show(
-            "An unexpected error occurred:\n\n" + e.Exception.Message,
+            $"An unexpected error occurred:\n\n{CrashLog.Describe(e.Exception)}\n\n" +
+            $"Full details were saved to:\n{CrashLog.FilePath}",
             "Auto-RoK Scheduler", MessageBoxButton.OK, MessageBoxImage.Error);
+
         e.Handled = true; // keep the app alive
     }
 }
