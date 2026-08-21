@@ -25,10 +25,11 @@ public sealed class AppSettings
     /// If true, a schedule whose time already passed today (e.g. the app was closed
     /// during its slot) still fires once when the app is next running — catching up to
     /// the correct state. If false, entries only fire within a short window of their
-    /// time and are otherwise skipped for the day. On by default so a missed slot
-    /// (e.g. a scheduled Stop while the app was closed) isn't silently lost.
+    /// time and are otherwise skipped for the day. Off by default: opening the app
+    /// hours later should not trigger an unexpected Start/Stop; a missed slot is
+    /// simply skipped until its next occurrence.
     /// </summary>
-    public bool CatchUpMissed { get; set; } = true;
+    public bool CatchUpMissed { get; set; } = false;
 
     /// <summary>Overall timeout for a single automation run.</summary>
     public int ActionTimeoutSeconds { get; set; } = 120;

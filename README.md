@@ -16,9 +16,14 @@ Built with **C# / .NET 10 / WPF** and **Selenium** driving **Microsoft Edge**.
 
 - **Scheduled Start/Stop** — set times (and days) per account; the app fires them
   automatically, once per day per entry.
-- **Catches up on missed slots** — if a scheduled time passed while the app was
-  closed, it runs when the app next opens (on by default), so a missed Stop isn't
-  lost for the day.
+- **Never skips a slot it was awake for** — the scheduled time is a hard trigger. If
+  another action is still running when a slot comes round, that slot is *queued* and
+  runs the moment the runner is free (seconds later), rather than being dropped. This
+  is always on; there is no setting for it.
+- **Optionally catches up on slots missed while closed** — if a scheduled time passed
+  while the app was **shut down**, it can still run when the app next opens. **Off by
+  default**, so opening the app hours later never triggers a surprise Start/Stop;
+  enable it in Settings if you'd rather a missed Stop wasn't lost for the day.
 - **Manual Start/Stop** — big buttons to run an action right now.
 - **Live status on startup** — when the app opens it logs in, opens each account's
   machine and reads the real state, so the dashboard shows the truth immediately.
@@ -129,10 +134,22 @@ On a selected account, use the **Schedule** card:
   - Pick **Daily** (or select no specific days) for **every day**.
 - Toggle an entry on/off with its switch.
 - Entries fire **once per day**. The app checks every *poll* seconds (default 30).
-- **Editing** an entry re-arms it: if its new time has already passed today, it runs
-  on the next check (via catch-up).
-- **Catch-up** (Settings, on by default): a time that passed while the app was closed
-  still fires once when the app next runs, catching up to the correct state.
+- **A busy runner never loses a slot.** Only one browser action runs at a time, so if a
+  slot comes round mid-action it is queued and executed as soon as that action finishes
+  — you'll see `… is due — queued` in the LOG, then `Schedule fired`. Multiple accounts
+  queue independently and run one after another; none are dropped.
+  - If several slots for the *same* account stack up during a long run, only the latest
+    one runs (it defines the correct end state); the superseded ones are logged as
+    skipped rather than toggling through each in turn.
+- **Editing** an entry re-arms it (its "already fired today" marker is cleared), so it
+  can run again today if its time is still ahead — or, with catch-up on, if its new
+  time has already passed.
+- **Catch-up** (Settings, **off by default**) applies *only* to slots that passed while
+  the app was **closed** — it has no bearing on slots missed because the app was busy,
+  which always run. Turn it on if a time that passed while the app was shut down should
+  still fire once when the app next opens, catching up to the correct state.
+- Waking from sleep is treated like a restart: slots that passed while the machine was
+  asleep are not fired on resume (unless catch-up is on).
 
 The app must be **running** for schedules to fire (it's a foreground app, not a
 Windows service). Leave it open, or add a shortcut to `shell:startup` to launch it at
@@ -146,7 +163,7 @@ login.
 - **Run browser hidden (headless)** — **on by default**; the browser runs invisibly.
   Turn it off to watch the automation in a real window (handy for debugging).
 - **Quit browser after each action** — on by default; the session still persists on disk.
-- **Catch up a missed schedule** — on by default; see above.
+- **Catch up a missed schedule** — **off by default**; see above.
 - **Schedule poll (seconds)** — how often the scheduler checks (min 5).
 - **Action timeout (seconds)** — overall budget for one run before it gives up.
 - **Browser window** — size and screen position (only visible when headless is off).
