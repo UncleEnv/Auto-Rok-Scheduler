@@ -87,6 +87,77 @@ public sealed class SeleniumBot : IDisposable
     private IWebDriver BuildDriver(Profile profile)
     {
         var userDataDir = AppPaths.BrowserProfileDir(profile.EffectiveProfileKey);
+
+        try
+        {
+            return StartDriver(profile, userDataDir);
+        }
+        catch (Exception ex) when (LooksLikeProfileInUse(ex))
+        {
+            // A browser this app orphaned (see BrowserProcessCleanup) is still holding the
+            // profile, so Edge exits the instant it starts and every run fails from here on.
+            // Clearing the stray session and retrying once makes that self-healing instead of
+            // something the user has to notice and fix in Task Manager.
+            _log("Browser would not start — the profile is still held by a leftover session.");
+            var killed = BrowserProcessCleanup.KillOrphansFor(userDataDir, _log);
+            _log(killed > 0
+                ? $"Stopped {killed} leftover browser process(es); retrying."
+                : "No leftover processes found; retrying anyway.");
+            return StartDriver(profile, userDataDir);
+        }
+    }
+
+    /// <summary>
+    /// True when the failure looks like the profile being locked rather than a real fault.
+    /// Matched on the message, not the type: Selenium surfaces this as a plain
+    /// <see cref="InvalidOperationException"/>, so filtering on
+    /// <see cref="WebDriverException"/> silently never fires.
+    /// </summary>
+    private static bool LooksLikeProfileInUse(Exception ex)
+    {
+        var m = ex.Message ?? "";
+        return m.Contains("DevToolsActivePort", StringComparison.OrdinalIgnoreCase)
+            || m.Contains("user data directory is already in use", StringComparison.OrdinalIgnoreCase)
+            || m.Contains("failed to start: crashed", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Ties the browser to this app's lifetime so it cannot be orphaned if we die abruptly.
+    /// The driver is enrolled first; the browser it already spawned has to be enrolled
+    /// explicitly, since job membership is only inherited by processes started afterwards.
+    /// </summary>
+    private void TieToAppLifetime(DriverService service, string userDataDir)
+    {
+        if (!ProcessJob.Enroll(service.ProcessId, _log)) return;
+
+        // Chromium's sandboxed helpers refuse to join another job (access denied). Only the
+        // browser process itself matters — its children go with it — so failures are ignored.
+        foreach (var pid in BrowserProcessCleanup.BrowsersUsing(userDataDir))
+            ProcessJob.Enroll(pid);
+    }
+
+    /// <summary>
+    /// Builds the driver, or disposes the service on failure — a session that fails to start
+    /// leaves its msedgedriver running, which would leak one process per failed attempt.
+    /// </summary>
+    private IWebDriver Launch(DriverService service, Func<IWebDriver> create, string userDataDir)
+    {
+        try
+        {
+            var driver = create();
+            TieToAppLifetime(service, userDataDir);
+            driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(60);
+            return driver;
+        }
+        catch
+        {
+            try { service.Dispose(); } catch { /* nothing more we can do */ }
+            throw;
+        }
+    }
+
+    private IWebDriver StartDriver(Profile profile, string userDataDir)
+    {
         var args = new[]
         {
             $"--user-data-dir={userDataDir}",   // dedicated, isolated from the real browser
@@ -99,7 +170,6 @@ public sealed class SeleniumBot : IDisposable
             $"--window-position={_settings.WindowLeft},{_settings.WindowTop}",
         };
 
-        IWebDriver driver;
         if (profile.Browser == BrowserKind.Chrome)
         {
             var o = new ChromeOptions();
@@ -111,7 +181,7 @@ public sealed class SeleniumBot : IDisposable
             var service = ChromeDriverService.CreateDefaultService();
             service.HideCommandPromptWindow = true;
             service.SuppressInitialDiagnosticInformation = true;
-            driver = new ChromeDriver(service, o);
+            return Launch(service, () => new ChromeDriver(service, o), userDataDir);
         }
         else
         {
@@ -124,11 +194,8 @@ public sealed class SeleniumBot : IDisposable
             var service = EdgeDriverService.CreateDefaultService();
             service.HideCommandPromptWindow = true;
             service.SuppressInitialDiagnosticInformation = true;
-            driver = new EdgeDriver(service, o);
+            return Launch(service, () => new EdgeDriver(service, o), userDataDir);
         }
-
-        driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(60);
-        return driver;
     }
 
     private void Navigate(string url) => _driver!.Navigate().GoToUrl(url);

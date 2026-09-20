@@ -83,6 +83,21 @@ the app was merely too busy to notice. Semantics:
 `LastFired` is stamped at **drain**, not arm, so a slot still queued when the app closes isn't
 falsely recorded as fired. Several slots stacked on one account collapse to the latest.
 
+**The browser must never outlive the app.** The browser is a *grandchild* (app → msedgedriver
+→ msedge), so nothing ties its lifetime to ours. If the app dies without `SeleniumBot.Dispose`
+running — crash, End Task, sign-out mid-run — the browser keeps holding its `--user-data-dir`
+and **every later run fails** with "DevToolsActivePort file doesn't exist", silently, until the
+strays are killed by hand. `ProcessJob` prevents this: a job object with
+`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` that the kernel empties when our process ends, however
+abruptly. Its handle is deliberately **never closed** — closing it is the kill trigger.
+`BrowserProcessCleanup` is the recovery half, for a profile still held by an orphan from an
+older build. It matches the *parsed value* of `--user-data-dir`, never a substring of the
+command line, because one profile key can be a prefix of another (`Uncle` / `Uncle Env`).
+
+**Selenium throws `InvalidOperationException`, not `WebDriverException`,** when a session
+fails to start. Filtering a driver-launch `catch` on `WebDriverException` compiles, reads
+correctly, and never fires. Match on the message.
+
 **`SiteConfig` is persisted into config.json.** Changing a selector default in
 `Models/SiteConfig.cs` will **not** affect an existing install — the stored copy wins. Delete
 `config.json` to regenerate defaults. All URLs/selectors live there; no markup is hard-coded in

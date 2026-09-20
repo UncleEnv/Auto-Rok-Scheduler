@@ -10,7 +10,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Product>Auto-RoK Scheduler</Product>
   </PropertyGroup>
 
@@ -25,6 +25,9 @@
          Edge/Chrome driver at runtime. No chromedriver/msedgedriver package needed. -->
     <PackageReference Include="Selenium.WebDriver" Version="4.47.0" />
     <PackageReference Include="Selenium.Support" Version="4.47.0" />
+    <!-- Win32_Process command lines, used to find browser sessions this app orphaned and
+         to tell them apart from the user's own Edge windows (BrowserProcessCleanup). -->
+    <PackageReference Include="System.Management" Version="10.0.0" />
     <!-- Windows DPAPI (System.Security.Cryptography.ProtectedData) ships with the
          net10.0-windows desktop framework, so no explicit package reference is needed. -->
   </ItemGroup>
