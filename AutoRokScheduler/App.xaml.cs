@@ -36,6 +36,24 @@ public partial class App : Application
         };
     }
 
+    /// <summary>
+    /// The window is created here rather than via StartupUri so the single-instance check
+    /// can run *before* anything exists: a second copy must not build a MainWindow, because
+    /// doing so starts a second scheduler tick and a second owner of config.json.
+    /// </summary>
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+
+        if (!SingleInstance.TryAcquire())
+        {
+            Shutdown();
+            return;
+        }
+
+        new Views.MainWindow().Show();
+    }
+
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         CrashLog.Write("UI thread", e.Exception);

@@ -24,6 +24,8 @@ public sealed class SeleniumBot : IDisposable
     private readonly AppSettings _settings;
     private readonly Action<string> _log;
     private IWebDriver? _driver;
+    private DriverService? _service;
+    private string? _userDataDir;
 
     public SeleniumBot(SiteConfig site, AppSettings settings, Action<string> log)
     {
@@ -87,6 +89,7 @@ public sealed class SeleniumBot : IDisposable
     private IWebDriver BuildDriver(Profile profile)
     {
         var userDataDir = AppPaths.BrowserProfileDir(profile.EffectiveProfileKey);
+        _userDataDir = userDataDir;   // remembered so Dispose can verify the teardown
 
         try
         {
@@ -145,6 +148,7 @@ public sealed class SeleniumBot : IDisposable
         try
         {
             var driver = create();
+            _service = service;
             TieToAppLifetime(service, userDataDir);
             driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(60);
             return driver;
@@ -531,9 +535,41 @@ public sealed class SeleniumBot : IDisposable
 
     public void Dispose()
     {
-        if (_driver == null) return;
-        try { _driver.Quit(); } catch { /* already dead */ }
-        try { _driver.Dispose(); } catch { }
+        var driver = _driver;
         _driver = null;
+        if (driver != null)
+        {
+            try { driver.Quit(); } catch { /* already dead */ }
+            try { driver.Dispose(); } catch { }
+        }
+
+        EnsureTornDown();
+    }
+
+    /// <summary>
+    /// Makes the teardown actually true rather than merely requested.
+    ///
+    /// <c>Quit()</c> is a polite request over the driver's HTTP channel: if the page blocks
+    /// unload, a renderer hangs, or the driver has already died, it returns (or throws) with
+    /// the browser still running. That browser keeps holding the user-data-dir, so the *next*
+    /// run finds the profile locked and has to recover — which is how a single silent leak
+    /// turned into a recurring "leftover session" on every later run.
+    ///
+    /// Runs are serialised and only one instance of the app may run (<see cref="SingleInstance"/>),
+    /// so anything still using this profile at this point is ours and safe to remove.
+    /// </summary>
+    private void EnsureTornDown()
+    {
+        var service = _service;
+        _service = null;
+        try { service?.Dispose(); } catch { /* Quit usually disposed it already */ }
+
+        var dir = _userDataDir;
+        _userDataDir = null;
+        if (dir == null) return;
+
+        var killed = BrowserProcessCleanup.KillOrphansFor(dir, _log);
+        if (killed > 0)
+            _log($"Browser ignored the request to close; cleaned up {killed} process(es).");
     }
 }

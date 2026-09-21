@@ -94,6 +94,22 @@ abruptly. Its handle is deliberately **never closed** — closing it is the kill
 older build. It matches the *parsed value* of `--user-data-dir`, never a substring of the
 command line, because one profile key can be a prefix of another (`Uncle` / `Uncle Env`).
 
+**`driver.Quit()` is a request, not a guarantee.** It is an HTTP call to the driver: if the
+page blocks unload, a renderer hangs, or the driver already died, it returns (or throws) with
+the browser still running — which then holds the user-data-dir and makes the *next* run report
+a leftover session. `SeleniumBot.Dispose` therefore **verifies** the teardown via
+`BrowserProcessCleanup` instead of trusting `Quit`. Don't reduce `Dispose` back to a bare
+`Quit()`.
+
+**Only one instance may run (`SingleInstance`, a named mutex checked in `App.OnStartup`).**
+Two copies tick two schedulers against the same accounts, fight over the same user-data-dir,
+and both own `config.json` — so the last to save silently discards the other's schedule edits
+and `LastFired` stamps. Worse, the second instance's orphan recovery kills the first's *live*
+browser mid-run. This is easy to hit by accident from a stale exe in a `bin\` folder. The
+window is created in `OnStartup`, not via `StartupUri`, so the check runs before a second
+scheduler can exist. Note the guard must survive a force-kill: an abandoned mutex is
+reclaimed, or a crash would lock the user out permanently.
+
 **Selenium throws `InvalidOperationException`, not `WebDriverException`,** when a session
 fails to start. Filtering a driver-launch `catch` on `WebDriverException` compiles, reads
 correctly, and never fires. Match on the message.
